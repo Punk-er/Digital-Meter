@@ -1,5 +1,9 @@
+
+#define diameter 72
+
+double dis;
 uint8_t GPIO_Pin = D8;
-int a;
+long int a=0;
 uint64_t time1;
 void ICACHE_RAM_ATTR A();
 void setup() {
@@ -8,22 +12,24 @@ void setup() {
   pinMode(D8, INPUT);
 
   attachInterrupt(digitalPinToInterrupt(D8), A, RISING);
-  // attachInterrupt(digitalPinToInterrupt(D7), B, CHANGE);
-  Serial.println("ad2");
 }
 
 void loop() {
-  // Serial.println(a);
+  dis=(float)a/400*diameter*3.141592/10;
+  Serial.print("palse: ");
+  Serial.println(a);
+  Serial.print("distance: ");
+  Serial.println(dis);
+  delay(200);
 }
 void A() {
   //  Serial.print("Stamp(ms): ");
-  Serial.println(micros()-time1);
+  // Serial.println(micros() - time1);
   if (digitalRead(D7)) {
     a++;
-    time1=micros();
-  }
-    else {
+  } else {
     a--;
-    time1=micros();
   }
+  
+  time1 = micros();
 }
