@@ -13,9 +13,10 @@
 #define GPIO_Volium1 3
 #define GPIO_Volium2 9
 #define GPIO_BTN A0
+#define relay_pin 6
 double dis, velocity;
 bool Motor_status = false, blink = true;
-int edit_mode = 0;
+int edit_mode = 0,LEVEL=0;
 long int a = 0;
 long int Volume = 0;
 long int telo = 0;
@@ -27,7 +28,7 @@ class LcdPrint {
 public:
   int X = 0, Y = 0, W = 0, H = 0;
   String lastText = "";
-  int16_t x1 = 0, y1 = 0;
+  int16_t X_internal = 0, Y_internal = 0;
   uint16_t bg_c, lastTC;
   LcdPrint(int x, int y, int w, int h, uint16_t bg) {
     this->X = x;
@@ -37,7 +38,7 @@ public:
     this->bg_c = bg;
   }
   void Clear() {
-    tft.setCursor(x1, y1);
+    tft.setCursor(X_internal, Y_internal);
     tft.setTextColor(bg_c);
     tft.print(lastText);
     lastText = "";
@@ -46,7 +47,7 @@ public:
     if (text != lastText || lastTC != text_c) {
       int16_t a1, b1;
       uint16_t textWidth, textHeight;
-      tft.setCursor(x1, y1);
+      tft.setCursor(X_internal, Y_internal);
       tft.setTextColor(bg_c);
       tft.print(lastText);
       tft.setTextColor(text_c);
@@ -54,40 +55,40 @@ public:
       tft.getTextBounds(text, 0, 0, &a1, &b1, &textWidth, &textHeight);
       if (HGravity == -1) {
         if (VGravity == -1) {
-          x1 = X;
-          y1 = Y + H;
+          X_internal = X;
+          Y_internal = Y + H;
         } else if (VGravity == 0) {
-          x1 = X;
-          y1 = Y + (H / 2 + textHeight / 2);
+          X_internal = X;
+          Y_internal = Y + (H / 2 + textHeight / 2);
         } else if (VGravity == 1) {
-          x1 = X;
-          y1 = Y + textHeight;
+          X_internal = X;
+          Y_internal = Y + textHeight;
         }
       } else if (HGravity == 0) {
         if (VGravity == -1) {
-          x1 = X + (W - textWidth) / 2;
-          y1 = Y + H;
+          X_internal = X + (W - textWidth) / 2;
+          Y_internal = Y + H;
         } else if (VGravity == 0) {
-          x1 = X + (W - textWidth) / 2;
-          y1 = Y + (H / 2 + textHeight / 2);
+          X_internal = X + (W - textWidth) / 2;
+          Y_internal = Y + (H / 2 + textHeight / 2);
         } else if (VGravity == 1) {
-          x1 = X + (W - textWidth) / 2;
-          y1 = Y + textHeight;
+          X_internal = X + (W - textWidth) / 2;
+          Y_internal = Y + textHeight;
         }
       } else if (HGravity == 1) {
         if (VGravity == -1) {
-          x1 = X + (W - textWidth);
-          y1 = Y + H;
+          X_internal = X + (W - textWidth);
+          Y_internal = Y + H;
         } else if (VGravity == 0) {
-          x1 = X + (W - textWidth);
-          y1 = Y + (H / 2 + textHeight / 2);
+          X_internal = X + (W - textWidth);
+          Y_internal = Y + (H / 2 + textHeight / 2);
         } else if (VGravity == 1) {
-          x1 = X + (W - textWidth);
-          y1 = Y + textHeight;
+          X_internal = X + (W - textWidth);
+          Y_internal = Y + textHeight;
         }
       }
 
-      tft.setCursor(x1, y1);
+      tft.setCursor(X_internal, Y_internal);
       tft.print(text);
       lastText = text;
     }
@@ -168,8 +169,8 @@ public:
 };
 LcdPrint lengtext(5, 2, 65, 15, ST7735_BLACK);
 LcdPrint length(5, 2, 118, 35, ST7735_BLACK);
-LcdPrint Statustext(5, 44, 59, 15, ST7735_BLACK);
-LcdPrint Status(5, 61, 59, 20, ST7735_RED);
+// LcdPrint Statustext(5, 44, 59, 15, ST7735_BLACK);
+// LcdPrint Status(5, 61, 59, 20, ST7735_RED);
 LcdPrint telorancetext(69, 44, 59, 15, ST7735_BLACK);
 LcdPrint telorance(69, 61, 59, 20, ST7735_BLACK);
 LcdPrint Targettext(5, 83, 118, 20, ST7735_BLACK);
