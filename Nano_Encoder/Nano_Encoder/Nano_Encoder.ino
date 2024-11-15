@@ -14,15 +14,22 @@
 #define GPIO_Volium2 9
 #define GPIO_BTN A0
 #define relay_pin 6
+#define BlinkTime 700
+#define RefreshRate 50
 double dis, velocity;
 bool Motor_status = false, blink = true;
 int edit_step = 0, LEVEL = 0;
-long int a = 0;
+long int Palse = 0;
 long int Volume = 0;
-long int telo = 0;
-long int target = 0;
-long int target_Count = 0;
-uint64_t time1;
+
+int telo_CM = 0;
+int telo_MM = 0;
+int target_CM = 0;
+int target_MM = 0;
+int target_Count = 0;
+
+uint64_t BlinkTimer;
+uint64_t RefreshTimer;
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, 0);
 class LcdPrint {
@@ -168,55 +175,66 @@ public:
     }
   }
 };
-LcdPrint lengtext(5, 2, 65, 15, ST7735_BLACK);
-LcdPrint length(5, 2, 118, 35, ST7735_BLACK);
-LcdPrint Targettext(5, 83, 118, 20, ST7735_BLACK);
-LcdPrint Targetlen(5, 102, 118, 20, ST7735_BLACK);
-LcdPrint telorancetext(69, 44, 59, 15, ST7735_BLACK);
-LcdPrint telorance(69, 61, 59, 20, ST7735_BLACK);
-LcdPrint CountText(5, 44, 59, 15, ST7735_BLACK);
-LcdPrint Count(5, 61, 59, 20, ST7735_BLACK);
 
-// LcdPrint leng7(0, 0, 65, 20, ST7735_BLACK);
-// void mainwin(int Update_level) {
 
-//   if (Update_level >= 1) {
-//     // lengtext.print("Length:", -1, 0, ST7735_RED);
-//     tft.setTextSize(1.5);
-//     length.print((String)dis + " cm", 0, 0, ST7735_RED);
-//     tft.setTextSize(1);
-//     // Statustext.print("State:", -1, 0, ST7735_BLUE);
-//     // Status.print("OFF", 0, 0, ST7735_BLUE);
-//     telorancetext.print("Tole:", -1, 0, ST7735_BLUE);
-//     telorance.print((String)telo + " cm", 0, 0, ST7735_BLUE);
-//     Targettext.print("Target:", -1, 0, ST7735_ORANGE);
-//     Targetlen.print((String)target + " cm", 0, 0, ST7735_ORANGE);
-//   }
-//   if (Update_level >= 2) {
-//     tft.drawRect(2, 1, 126, 40, ST7735_RED);
-//     tft.drawRect(3, 2, 124, 38, ST7735_RED);
-//     tft.drawRect(1, 42, 62, 40, ST7735_BLUE);
-//     tft.drawRect(64, 43, 62, 38, ST7735_BLUE);
-//     tft.drawRect(1, 83, 126, 40, ST7735_ORANGE);
-//     tft.drawRect(2, 84, 124, 38, ST7735_ORANGE);
-//   }
-// }
+LcdPrint telorancetext(5, 2, 65, 15, ST7735_BLACK);
+LcdPrint telorance(5, 15, 118, 25, ST7735_BLACK);
+LcdPrint Targettext(5, 41, 118, 15, ST7735_BLACK);
+LcdPrint Targetlen(5, 55, 118, 25, ST7735_BLACK);
+LcdPrint CountText(5, 84, 118, 15, ST7735_BLACK);
+LcdPrint Count(5, 96, 118, 25, ST7735_BLACK);
+
+LcdPrint Lengthtext(5, 5, 118, 10, ST7735_BLACK);
+LcdPrint Length(5, 25, 118, 20, ST7735_BLACK);
+
+// LcdPrint Lengthtext(69, 44, 59, 15, ST7735_BLACK);
+// LcdPrint Length(69, 61, 59, 20, ST7735_BLACK);
+
+// LcdPrint Lengthtext(69, 44, 59, 15, ST7735_BLACK);
+// LcdPrint Length(69, 61, 59, 20, ST7735_BLACK);
+
 Button btn(GPIO_BTN, true);
 void on_hold(int time) {
-  // LEVEL++;
+  LEVEL++;
   if (LEVEL > 1) LEVEL = 0;
+  if (LEVEL == 0) {
+    edit_step = 0;
+    tft.fillScreen(ST7735_BLACK);
+    Length.Clear();
+    Lengthtext.Clear();
+    tft.drawRect(2, 1, 126, 38, ST7735_RED);
+    tft.drawRect(3, 2, 124, 36, ST7735_RED);
+    tft.drawRect(1, 40, 126, 38, ST7735_BLUE);
+    tft.drawRect(2, 41, 124, 36, ST7735_BLUE);
+    tft.drawRect(1, 80, 126, 38, ST7735_ORANGE);
+    tft.drawRect(2, 81, 124, 36, ST7735_ORANGE);
+    telorancetext.print("Telorance", -1, 0, ST7735_RED);
+    Targettext.print("Target", -1, 0, ST7735_BLUE);
+    CountText.print("Count", -1, 0, ST7735_ORANGE);
+    telorance.print((String)telo_CM + "." + (String)telo_MM + " CM", 0, 0, ST7735_RED);
+    Targetlen.print((String)target_CM + "." + (String)target_MM + " CM", 0, 0, ST7735_BLUE);
+    Count.print((String)target_Count + " PCS", 0, 0, ST7735_ORANGE);
 
-  Serial.print("holed ");
-  Serial.println(time);
+  } else if (LEVEL == 1) {
+    tft.fillScreen(ST7735_BLACK);
+    telorancetext.Clear();
+    Targettext.Clear();
+    CountText.Clear();
+    telorance.Clear();
+    Targetlen.Clear();
+    Count.Clear();
+    tft.drawRect(2, 1, 126, 50, ST7735_WHITE);
+    tft.drawRect(3, 2, 124, 48, ST7735_WHITE);
+    Lengthtext.print("Length:", 0, 0, ST7735_WHITE);
+    Length.print((String)Palse, 0, 0, ST7735_WHITE);
+  }
 }
 void on_tab(int times) {
-  edit_step++;
-  if (edit_step > 2) edit_step = 0;
-
-  Serial.print("tapped ");
-  Serial.println(times);
+  edit_step += times;
+  if (edit_step > 4) edit_step = 0;
 }
 void setup() {
+  btn.holdTime = 3000;
   Serial.begin(115200);
   pinMode(GPIO_Pin, INPUT);
   pinMode(GPIO_Pin2, INPUT);
@@ -235,6 +253,7 @@ void setup() {
   tft.fillScreen(ST7735_CYAN);
   tft.drawRoundRect(2, 2, tft.width() - 2, tft.height() - 2, 10, ST7735_YELLOW);
   tft.drawRoundRect(3, 3, tft.width() - 4, tft.height() - 4, 10, ST7735_YELLOW);
+  tft.drawRoundRect(4, 4, tft.width() - 6, tft.height() - 6, 10, ST7735_YELLOW);
   tft.setCursor(15, tft.height() / 2 - 4);
   tft.setTextColor(ST7735_RED);
   tft.setTextSize(1);
@@ -242,90 +261,60 @@ void setup() {
   tft.println("CHIST.ORG");
   delay(1000);
   tft.setFont(&FreeSerifItalic9pt7b);
-  tft.setTextSize(2);
+  // tft.setTextSize(2);
 
   tft.fillScreen(ST7735_BLACK);
-  tft.drawRect(2, 1, 126, 40, ST7735_RED);
-  tft.drawRect(3, 2, 124, 38, ST7735_RED);
-  tft.drawRect(1, 42, 126, 40, ST7735_BLUE);
-  tft.drawRect(2, 43, 124, 38, ST7735_BLUE);
-  tft.drawRect(1, 83, 126, 40, ST7735_ORANGE);
-  tft.drawRect(2, 84, 124, 38, ST7735_ORANGE);
-  Targettext.X=5;
-  Targettext.Y=40;
-  Targettext.H=40;
-  Targettext.W=128;
-  Targettext.print("Telorance", -1, 0, ST7735_RED);
-    Targettext.print("Target:", -1, 0, ST7735_ORANGE);
-
-  // tft.setCursor(2, 20);
-  // tft.setTextColor(ST7735_BLUE);
-  // tft.setTextSize(0.5);
-  // tft.setFont(&FreeMonoOblique9pt7b);
-  // tft.println("Length:");
-  // tft.setCursor(10, 40);
-
-  // updatablePrint("length:", 15, ST7735_RED, ST7735_BLACK, -1);
-
-  // updatablePrint((String)Volume + " cm", 35, ST7735_RED, ST7735_BLACK, -1);
-  // tft.setFont(&FreeSerifBold9pt7b);
-
-  // delay(1000);
-  // updatablePrint("me21hran", 35, ST7735_BLUE, ST7735_BLACK,0);
-  // delay(1000);
-  // updatablePrint("men", 35, ST7735_RED, ST7735_BLACK,1);
-  // delay(1000);
-
-
-  // leng.Print("awdad", -1, -1, ST7735_RED);
-  // leng.Clear();
-  // mainwin(2);
+  tft.drawRect(2, 1, 126, 38, ST7735_RED);
+  tft.drawRect(3, 2, 124, 36, ST7735_RED);
+  tft.drawRect(1, 40, 126, 38, ST7735_BLUE);
+  tft.drawRect(2, 41, 124, 36, ST7735_BLUE);
+  tft.drawRect(1, 80, 126, 38, ST7735_ORANGE);
+  tft.drawRect(2, 81, 124, 36, ST7735_ORANGE);
+  telorancetext.print("Telorance", -1, 0, ST7735_RED);
+  Targettext.print("Target", -1, 0, ST7735_BLUE);
+  CountText.print("Count", -1, 0, ST7735_ORANGE);
 }
 
 void loop() {
   btn.Listen();
-  if (LEVEL == 0 && millis() - time1 > 500) {
+  if (LEVEL == 0 && millis() - BlinkTimer > BlinkTime) {
     blink = !blink;
-    if (edit_step == 0) {
+    if (edit_step == 0 || edit_step == 1) {
+      CountText.print("Count", -1, 0, ST7735_ORANGE);
       if (blink) {
-        Targettext.print("Telorance", -1, 0, ST7735_RED);
+        telorancetext.print("Telorance", -1, 0, ST7735_RED);
+      } else {
+        telorancetext.Clear();
+      }
+
+    } else if (edit_step == 2 || edit_step == 3) {
+      telorancetext.print("Telorance", -1, 0, ST7735_RED);
+      if (blink) {
+        Targettext.print("Target", -1, 0, ST7735_BLUE);
       } else {
         Targettext.Clear();
       }
-    } else if (edit_step == 1) {
 
-    } else if (edit_step == 2) {
-
+    } else if (edit_step == 4) {
+      Targettext.print("Target", -1, 0, ST7735_BLUE);
+      if (blink) {
+        CountText.print("Count", -1, 0, ST7735_ORANGE);
+      } else {
+        CountText.Clear();
+      }
     } else {
     }
-    time1 = millis();
+    BlinkTimer = millis();
   }
-  // if (edit_step == 1 && millis() - time1 > 500) {
-  //   blink = !blink;
-  //   if (blink) {
-  //     telorancetext.Clear();
-  //   } else {
-  //     mainwin(1);
-  //   }
-
-  //   time1 = millis();
-  // } else if (edit_step == 2 && millis() - time1 > 500) {
-  //   blink = !blink;
-  //   if (blink) {
-  //     Targettext.Clear();
-  //   } else {
-  //     mainwin(1);
-  //   }
-
-  //   time1 = millis();
-  // }
-
-  if (LEVEL == 0 && millis() - time1 > 200) {
-    // Serial.println((((double)a / 400 * diameter * 3.141592 / 10) - dis));
-    dis = (double)a / 400 * diameter * 3.141592 / 10;
-
-
-    time1 = millis();
+  if (millis() - RefreshTimer > RefreshRate) {
+    if (LEVEL == 0) {
+      telorance.print((String)telo_CM + "." + (String)telo_MM + " CM", 0, 0, ST7735_RED);
+      Targetlen.print((String)target_CM + "." + (String)target_MM + " CM", 0, 0, ST7735_BLUE);
+      Count.print((String)target_Count + " PCS", 0, 0, ST7735_ORANGE);
+    } else if (LEVEL == 1) {
+      Length.print((String)Palse, 0, 0, ST7735_WHITE);
+    }
+    RefreshTimer = millis();
   }
 }
 
@@ -334,31 +323,42 @@ void Vol() {
   if (LEVEL == 0) {
     if (digitalRead(GPIO_Volium2) == digitalRead(GPIO_Volium1)) {
       if (edit_step == 0) {
-        telo--;
+        telo_MM--;
+        if (telo_MM < 0) telo_MM = 9;
       } else if (edit_step == 1) {
-        target--;
+        telo_CM--;
+
       } else if (edit_step == 2) {
-        target_Count--;
+        target_MM--;
+        if (target_MM < 0) target_MM = 9;
+      } else if (edit_step == 3) {
+        if (target_CM > 0) target_CM--;
+      } else if (edit_step == 4) {
+        if (target_Count > 0) target_Count--;
       }
     } else {
       if (edit_step == 0) {
-        telo++;
+        telo_MM++;
+        if (telo_MM > 9) telo_MM = 0;
       } else if (edit_step == 1) {
-        target++;
+        telo_CM++;
       } else if (edit_step == 2) {
+        target_MM++;
+        if (target_MM > 9) target_MM = 0;
+      } else if (edit_step == 3) {
+        target_CM++;
+      } else if (edit_step == 4) {
         target_Count++;
       }
     }
   }
-  Serial.print("Volume: ");
-  Serial.println(Volume);
 }
 void A() {
   if (!edit_step) {
     if (digitalRead(GPIO_Pin2)) {
-      a++;
+      Palse++;
     } else {
-      a--;
+      Palse--;
     }
   }
 }
